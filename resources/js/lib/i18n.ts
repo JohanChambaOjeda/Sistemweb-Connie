@@ -19,10 +19,11 @@ export function translate(tree: TranslationTree, key: string, replacements: Reco
         return key;
     }
 
-    return Object.entries(replacements).reduce(
-        (text, [name, replacement]) => text.replaceAll(`:${name}`, String(replacement)),
-        value,
-    );
+    // De mayor a menor longitud: si no, al reemplazar :to primero, ":total"
+    // quedaría partido a la mitad.
+    return Object.entries(replacements)
+        .sort(([a], [b]) => b.length - a.length)
+        .reduce((text, [name, replacement]) => text.replaceAll(`:${name}`, String(replacement)), value);
 }
 
 export function useTranslations() {

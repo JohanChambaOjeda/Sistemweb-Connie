@@ -41,8 +41,10 @@ class ProductPrice extends Model
         return [
             'season' => Season::class,
             'price_per_stem' => 'decimal:4',
-            'valid_from' => 'date',
-            'valid_to' => 'date',
+            // Con el formato explícito, el JSON lleva 2026-01-01 y no una
+            // marca de tiempo completa.
+            'valid_from' => 'date:Y-m-d',
+            'valid_to' => 'date:Y-m-d',
             'is_active' => 'boolean',
         ];
     }
