@@ -1,0 +1,46 @@
+<?php
+
+return [
+    'actions' => [
+        'create' => 'Nuevo',
+        'edit' => 'Editar',
+        'delete' => 'Eliminar',
+        'save' => 'Guardar',
+        'cancel' => 'Cancelar',
+        'back' => 'Volver',
+        'search' => 'Buscar',
+        'filter' => 'Filtrar',
+        'clear' => 'Limpiar',
+        'confirm' => 'Confirmar',
+        'close' => 'Cerrar',
+        'view' => 'Ver',
+        'activate' => 'Activar',
+        'deactivate' => 'Desactivar',
+        'change_password' => 'Cambiar contraseña',
+    ],
+    'table' => [
+        'search_placeholder' => 'Buscar...',
+        'per_page' => 'Por página',
+        'no_results' => 'Sin resultados',
+        'showing' => 'Mostrando :from-:to de :total',
+        'previous' => 'Anterior',
+        'next' => 'Siguiente',
+        'sort_asc' => 'Orden ascendente',
+        'sort_desc' => 'Orden descendente',
+    ],
+    'status' => [
+        'active' => 'Activo',
+        'inactive' => 'Inactivo',
+        'yes' => 'Sí',
+        'no' => 'No',
+    ],
+    'confirm_delete' => '¿Eliminar :name? Esta acción se puede revertir desde la base de datos.',
+    'required_fields' => 'Los campos marcados con * son obligatorios.',
+    'appearance' => [
+        'light' => 'Claro',
+        'dark' => 'Oscuro',
+        'system' => 'Sistema',
+    ],
+    'language' => 'Idioma',
+    'company' => 'Empresa',
+];

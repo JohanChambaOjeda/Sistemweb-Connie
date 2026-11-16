@@ -1,0 +1,46 @@
+<?php
+
+return [
+    'actions' => [
+        'create' => 'New',
+        'edit' => 'Edit',
+        'delete' => 'Delete',
+        'save' => 'Save',
+        'cancel' => 'Cancel',
+        'back' => 'Back',
+        'search' => 'Search',
+        'filter' => 'Filter',
+        'clear' => 'Clear',
+        'confirm' => 'Confirm',
+        'close' => 'Close',
+        'view' => 'View',
+        'activate' => 'Activate',
+        'deactivate' => 'Deactivate',
+        'change_password' => 'Change password',
+    ],
+    'table' => [
+        'search_placeholder' => 'Search...',
+        'per_page' => 'Per page',
+        'no_results' => 'No results',
+        'showing' => 'Showing :from-:to of :total',
+        'previous' => 'Previous',
+        'next' => 'Next',
+        'sort_asc' => 'Sort ascending',
+        'sort_desc' => 'Sort descending',
+    ],
+    'status' => [
+        'active' => 'Active',
+        'inactive' => 'Inactive',
+        'yes' => 'Yes',
+        'no' => 'No',
+    ],
+    'confirm_delete' => 'Delete :name? The record can still be restored in the database.',
+    'required_fields' => 'Fields marked with * are required.',
+    'appearance' => [
+        'light' => 'Light',
+        'dark' => 'Dark',
+        'system' => 'System',
+    ],
+    'language' => 'Language',
+    'company' => 'Company',
+];
