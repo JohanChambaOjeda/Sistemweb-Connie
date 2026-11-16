@@ -22,6 +22,7 @@ import {
     LayoutGrid,
     Package,
     ScrollText,
+    Upload,
     Ship,
     Tags,
     Users,
@@ -79,6 +80,7 @@ export function AppSidebar() {
             items: [
                 { title: t('nav.users'), url: route('users.index'), icon: UserCog, permission: 'users.view' },
                 { title: t('nav.activity'), url: route('activity.index'), icon: ScrollText, permission: 'activity_log.view' },
+                { title: t('nav.imports'), url: route('imports.index'), icon: Upload, permission: 'imports.run' },
             ],
         },
     ];

@@ -1,0 +1,54 @@
+<?php
+
+return [
+    'title' => 'Import data',
+    'subtitle' => 'Upload an Excel or CSV file, check the column mapping and save only the valid rows.',
+    'types' => [
+        'customers' => 'Customers',
+        'varieties' => 'Varieties',
+        'products' => 'Products',
+        'prices' => 'Prices',
+    ],
+    'status' => [
+        'uploaded' => 'Uploaded',
+        'mapped' => 'Mapped',
+        'committed' => 'Imported',
+        'failed' => 'Failed',
+    ],
+    'fields' => [
+        'type' => 'What to import',
+        'file' => 'File',
+        'header_row' => 'Header row',
+        'column' => 'File column',
+        'field' => 'System field',
+        'example' => 'Example',
+        'row' => 'Row',
+        'errors' => 'Errors',
+    ],
+    'upload' => 'Upload file',
+    'mapping' => 'Column mapping',
+    'mapping_hint' => 'Columns are guessed from the header. Fix what is wrong and save.',
+    'preview' => 'Preview',
+    'preview_hint' => 'The first 50 rows are shown. The summary counts the whole file.',
+    'rejected_rows' => 'Rows with errors',
+    'summary' => ':total rows · :valid valid · :invalid with errors',
+    'ignore_column' => 'Do not import',
+    'commit' => 'Import valid rows only',
+    'download_report' => 'Download rejected rows report',
+    'recent_runs' => 'Recent imports',
+    'no_runs' => 'You have not imported any file yet.',
+    'expected_columns' => 'Expected columns',
+    'required' => 'required',
+    'report' => [
+        'row' => 'Row',
+        'reason' => 'Rejection reason',
+    ],
+    'errors' => [
+        'unknown_customer' => 'Customer :name does not exist. Import it first.',
+    ],
+    'messages' => [
+        'mapping_saved' => 'Mapping saved.',
+        'committed' => ':imported rows imported and :rejected rejected.',
+        'deleted' => 'Import deleted.',
+    ],
+];

@@ -7,6 +7,7 @@ use App\Http\Controllers\CurrentCompanyController;
 use App\Http\Controllers\CustomerContactController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\FlowerVarietyController;
+use App\Http\Controllers\ImportController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MarkController;
 use App\Http\Controllers\ProductController;
@@ -37,6 +38,15 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('users', UserController::class)->except(['show', 'destroy']);
     Route::put('users/{user}/status', [UserController::class, 'updateStatus'])->name('users.status');
     Route::put('users/{user}/password', [UserController::class, 'updatePassword'])->name('users.password');
+
+    // Importación de datos desde Excel
+    Route::get('imports', [ImportController::class, 'index'])->name('imports.index');
+    Route::post('imports', [ImportController::class, 'store'])->name('imports.store');
+    Route::get('imports/{import}', [ImportController::class, 'show'])->name('imports.show');
+    Route::put('imports/{import}', [ImportController::class, 'update'])->name('imports.update');
+    Route::post('imports/{import}/commit', [ImportController::class, 'commit'])->name('imports.commit');
+    Route::get('imports/{import}/report', [ImportController::class, 'report'])->name('imports.report');
+    Route::delete('imports/{import}', [ImportController::class, 'destroy'])->name('imports.destroy');
 
     // Catálogo de producto: lo usan ventas, poscosecha y empaque, así que no
     // depende de un módulo del plan.
