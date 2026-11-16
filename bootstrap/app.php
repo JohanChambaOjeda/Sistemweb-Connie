@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Middleware\EnsureModuleIsActive;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\SetCompanyContext;
+use App\Http\Middleware\SetLocale;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -14,8 +17,14 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(append: [
+            SetCompanyContext::class,
+            SetLocale::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+        ]);
+
+        $middleware->alias([
+            'module' => EnsureModuleIsActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
