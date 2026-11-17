@@ -94,6 +94,22 @@ it('aisla el catálogo entre empresas', function () {
     assertCompanyScoped(BoxType::class);
 });
 
+it('el catálogo necesita el módulo de poscosecha', function () {
+    $sinPoscosecha = companyWithModules(['sales']);
+    actingAsRole('admin', $sinPoscosecha);
+
+    $this->get(route('varieties.index'))->assertForbidden();
+    $this->get(route('products.index'))->assertForbidden();
+    $this->get(route('box-types.index'))->assertForbidden();
+
+    $conPoscosecha = companyWithModules(['sales', 'postharvest']);
+    actingAsRole('admin', $conPoscosecha);
+
+    $this->get(route('varieties.index'))->assertOk();
+    $this->get(route('products.index'))->assertOk();
+    $this->get(route('box-types.index'))->assertOk();
+});
+
 it('deja al jefe de poscosecha administrar el catálogo pero no los precios', function () {
     $company = companyWithModules();
     actingAsRole('postharvest_lead', $company);

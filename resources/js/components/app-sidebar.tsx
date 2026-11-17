@@ -69,6 +69,7 @@ export function AppSidebar() {
         },
         {
             title: t('nav.groups.catalog'),
+            module: 'postharvest',
             items: [
                 { title: t('nav.varieties'), url: route('varieties.index'), icon: Flower2, permission: 'flower_varieties.view' },
                 { title: t('nav.products'), url: route('products.index'), icon: Package, permission: 'products.view' },

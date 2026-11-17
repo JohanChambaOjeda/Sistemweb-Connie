@@ -19,9 +19,27 @@ export default function Dashboard() {
         { title: t('nav.customers'), url: route('customers.index'), icon: Users, permission: 'customers.view', module: 'sales' },
         { title: t('nav.marks'), url: route('marks.index'), icon: Tags, permission: 'marks.view', module: 'sales' },
         { title: t('nav.prices'), url: route('prices.index'), icon: DollarSign, permission: 'product_prices.view', module: 'sales' },
-        { title: t('nav.varieties'), url: route('varieties.index'), icon: Flower2, permission: 'flower_varieties.view' },
-        { title: t('nav.products'), url: route('products.index'), icon: Package, permission: 'products.view' },
-        { title: t('nav.box_types'), url: route('box-types.index'), icon: Boxes, permission: 'box_types.view' },
+        {
+            title: t('nav.varieties'),
+            url: route('varieties.index'),
+            icon: Flower2,
+            permission: 'flower_varieties.view',
+            module: 'postharvest',
+        },
+        {
+            title: t('nav.products'),
+            url: route('products.index'),
+            icon: Package,
+            permission: 'products.view',
+            module: 'postharvest',
+        },
+        {
+            title: t('nav.box_types'),
+            url: route('box-types.index'),
+            icon: Boxes,
+            permission: 'box_types.view',
+            module: 'postharvest',
+        },
     ].filter((shortcut) => can(shortcut.permission) && (shortcut.module === undefined || hasModule(shortcut.module)));
 
     return (

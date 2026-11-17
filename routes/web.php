@@ -48,15 +48,17 @@ Route::middleware(['auth'])->group(function () {
     Route::get('imports/{import}/report', [ImportController::class, 'report'])->name('imports.report');
     Route::delete('imports/{import}', [ImportController::class, 'destroy'])->name('imports.destroy');
 
-    // Catálogo de producto: lo usan ventas, poscosecha y empaque, así que no
-    // depende de un módulo del plan.
-    Route::resource('varieties', FlowerVarietyController::class)
-        ->except('show')
-        ->parameters(['varieties' => 'variety']);
-    Route::resource('products', ProductController::class)->except('show');
-    Route::resource('box-types', BoxTypeController::class)
-        ->except('show')
-        ->parameters(['box-types' => 'box_type']);
+    // Catálogo de producto: variedades, productos y tipos de caja viven en el
+    // módulo de poscosecha.
+    Route::middleware('module:postharvest')->group(function () {
+        Route::resource('varieties', FlowerVarietyController::class)
+            ->except('show')
+            ->parameters(['varieties' => 'variety']);
+        Route::resource('products', ProductController::class)->except('show');
+        Route::resource('box-types', BoxTypeController::class)
+            ->except('show')
+            ->parameters(['box-types' => 'box_type']);
+    });
 
     // Datos comerciales: solo con el módulo de ventas activo.
     Route::middleware('module:sales')->group(function () {
