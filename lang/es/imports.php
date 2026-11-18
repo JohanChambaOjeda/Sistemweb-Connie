@@ -45,6 +45,7 @@ return [
         'reason' => 'Motivo del rechazo',
     ],
     'errors' => [
+        'unknown_product' => 'El producto :variety :length cm x:stems no existe. Impórtalo o créalo primero.',
         'unknown_customer' => 'El cliente :name no existe. Impórtalo primero.',
     ],
     'messages' => [

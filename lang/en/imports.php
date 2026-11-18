@@ -45,6 +45,7 @@ return [
         'reason' => 'Rejection reason',
     ],
     'errors' => [
+        'unknown_product' => 'Product :variety :length cm x:stems does not exist. Import or create it first.',
         'unknown_customer' => 'Customer :name does not exist. Import it first.',
     ],
     'messages' => [

@@ -122,6 +122,14 @@ necesitan MySQL; el desarrollo y la producción sí usan MySQL 8.
 5. Confirma para importar **solo las filas válidas** y descarga el reporte de
    las rechazadas.
 
+Importa en este orden: **variedades → productos → clientes → precios**. El
+importador de precios no crea catálogo: si la variedad, el largo o los tallos
+por bonche no corresponden a un producto que ya exista, la fila se rechaza con
+ese motivo, igual que cuando nombra a un cliente desconocido. Las variedades y
+los productos pertenecen al módulo de poscosecha, y los clientes y los precios
+al de ventas: la pantalla solo ofrece los importadores que tenga contratados la
+empresa.
+
 Los importadores son genéricos, así que sirven igual para los archivos de otras
 fincas. Cuando estén los Excel reales de SoftFlor en `docs/softflor/`, se pueden
 guardar perfiles de mapeo ya listos para esos archivos.

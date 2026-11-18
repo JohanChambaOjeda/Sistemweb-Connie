@@ -157,9 +157,16 @@ it('importa productos aceptando el largo con unidad', function () {
         ->toEqualCanonicalizing(['Explorer 60 cm x25', 'Explorer 70 cm x25']);
 });
 
-it('importa precios y rechaza clientes que no existen', function () {
+it('importa precios sobre productos que ya existen', function () {
     actingAsRole('admin');
     Customer::factory()->create(['name' => 'Miami Roses']);
+
+    $explorer = FlowerVariety::factory()->create(['name' => 'Explorer']);
+    Product::factory()->create([
+        'flower_variety_id' => $explorer->id,
+        'stem_length_cm' => 60,
+        'stems_per_bunch' => 25,
+    ]);
 
     $run = uploadCsv('prices', <<<'CSV'
     Variedad,Largo,Cliente,Temporada,Precio,Desde
@@ -175,6 +182,53 @@ it('importa precios y rechaza clientes que no existen', function () {
         ->and($run->invalid_rows)->toBe(1)
         ->and(ProductPrice::query()->count())->toBe(2)
         ->and(ProductPrice::query()->whereNotNull('season')->first()->season->value)->toBe('valentines');
+});
+
+it('rechaza el precio de un producto que no existe en vez de crearlo', function () {
+    actingAsRole('admin');
+
+    $explorer = FlowerVariety::factory()->create(['name' => 'Explorer']);
+    Product::factory()->create([
+        'flower_variety_id' => $explorer->id,
+        'stem_length_cm' => 60,
+        'stems_per_bunch' => 25,
+    ]);
+
+    $run = uploadCsv('prices', <<<'CSV'
+    Variedad,Largo,Tallos,Precio,Desde
+    Explorer,60,25,0.45,2026-01-01
+    Explorer,90,25,0.80,2026-01-01
+    Mondial,60,25,0.50,2026-01-01
+    Explorer,60,20,0.40,2026-01-01
+    CSV);
+
+    $this->get(route('imports.show', $run))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('preview.valid', 1)
+            ->where('preview.invalid', 3));
+
+    $this->post(route('imports.commit', $run));
+    $run->refresh();
+
+    expect($run->committed_rows)->toBe(1)
+        ->and($run->invalid_rows)->toBe(3)
+        ->and(ProductPrice::query()->count())->toBe(1)
+        // El catálogo queda igual: ni variedades ni productos nuevos.
+        ->and(Product::query()->count())->toBe(1)
+        ->and(FlowerVariety::query()->count())->toBe(1);
+
+    $report = $run->error_report_path;
+
+    expect($report)->not->toBeNull();
+
+    $rows = Maatwebsite\Excel\Facades\Excel::toArray(
+        new App\Support\RawSheet,
+        Storage::disk('local')->path($report),
+    )[0];
+
+    expect(collect($rows)->flatten()->filter()->implode(' '))
+        ->toContain('Explorer 90 cm x25 no existe');
 });
 
 it('solo importa a la empresa activa', function () {

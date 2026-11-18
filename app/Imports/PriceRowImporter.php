@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\ProductPrice;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
+use RuntimeException;
 
 class PriceRowImporter extends RowImporter
 {
@@ -92,19 +93,13 @@ class PriceRowImporter extends RowImporter
      */
     public function import(array $row): void
     {
-        $variety = FlowerVariety::query()->firstOrCreate(
-            ['name' => $row['variety']],
-            ['is_active' => true],
-        );
+        $product = $this->findProduct($row);
 
-        $product = Product::query()->firstOrCreate(
-            [
-                'flower_variety_id' => $variety->getKey(),
-                'stem_length_cm' => (int) $row['stem_length_cm'],
-                'stems_per_bunch' => (int) ($row['stems_per_bunch'] ?? config('floriculture.default_stems_per_bunch')),
-            ],
-            ['is_active' => true],
-        );
+        if (! $product instanceof Product) {
+            // errorsFor() ya rechaza estas filas, así que llegar aquí sería un
+            // error de programación y no algo que deba pasar en silencio.
+            throw new RuntimeException('El producto de la fila no existe: '.json_encode($row));
+        }
 
         $customerName = $row['customer'] ?? null;
         $customer = $customerName === null
@@ -127,8 +122,9 @@ class PriceRowImporter extends RowImporter
     }
 
     /**
-     * El cliente nombrado en el archivo tiene que existir; si no, la fila se
-     * rechaza con un motivo claro en lugar de crear un cliente a medias.
+     * El producto y el cliente nombrados en el archivo tienen que existir: una
+     * lista de precios no crea catálogo. Si falta alguno, la fila se rechaza
+     * con un motivo claro.
      *
      * @param  array<string, mixed>  $row
      * @return list<string>
@@ -144,6 +140,44 @@ class PriceRowImporter extends RowImporter
             $errors[] = __('imports.errors.unknown_customer', ['name' => $customerName]);
         }
 
+        if ($errors === [] && ! $this->findProduct($row) instanceof Product) {
+            $errors[] = __('imports.errors.unknown_product', [
+                'variety' => (string) ($row['variety'] ?? ''),
+                'length' => (string) ($row['stem_length_cm'] ?? ''),
+                'stems' => (string) $this->stemsPerBunch($row),
+            ]);
+        }
+
         return $errors;
+    }
+
+    /**
+     * Busca el producto por variedad, largo y tallos por bonche.
+     *
+     * @param  array<string, mixed>  $row
+     */
+    private function findProduct(array $row): ?Product
+    {
+        $variety = FlowerVariety::query()->where('name', $row['variety'] ?? null)->first();
+
+        if (! $variety instanceof FlowerVariety) {
+            return null;
+        }
+
+        return Product::query()
+            ->where('flower_variety_id', $variety->getKey())
+            ->where('stem_length_cm', (int) ($row['stem_length_cm'] ?? 0))
+            ->where('stems_per_bunch', $this->stemsPerBunch($row))
+            ->first();
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function stemsPerBunch(array $row): int
+    {
+        $stems = $row['stems_per_bunch'] ?? null;
+
+        return (int) ($stems ?? config('floriculture.default_stems_per_bunch'));
     }
 }
