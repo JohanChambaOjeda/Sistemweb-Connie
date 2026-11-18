@@ -2,6 +2,7 @@
 
 namespace App\Imports;
 
+use App\Enums\ModuleKey;
 use App\Enums\Season;
 use App\Models\Customer;
 use App\Models\FlowerVariety;
@@ -15,6 +16,11 @@ class PriceRowImporter extends RowImporter
     public function type(): string
     {
         return 'prices';
+    }
+
+    public function module(): ?string
+    {
+        return ModuleKey::Sales->value;
     }
 
     /**

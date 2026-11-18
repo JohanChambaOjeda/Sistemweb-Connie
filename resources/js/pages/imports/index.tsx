@@ -82,6 +82,9 @@ export default function ImportsIndex({ types, runs }: { types: ImportType[]; run
                             <CardTitle className="text-base">{t('imports.upload')}</CardTitle>
                         </CardHeader>
                         <CardContent>
+                            {types.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">{t('imports.no_types')}</p>
+                            ) : (
                             <form onSubmit={submit} className="space-y-4">
                                 <Field label={t('imports.fields.type')} error={errors.type} required>
                                     <Select
@@ -127,6 +130,7 @@ export default function ImportsIndex({ types, runs }: { types: ImportType[]; run
                                     {t('imports.upload')}
                                 </Button>
                             </form>
+                            )}
                         </CardContent>
                     </Card>
 

@@ -36,6 +36,7 @@ return [
     'commit' => 'Import valid rows only',
     'download_report' => 'Download rejected rows report',
     'recent_runs' => 'Recent imports',
+    'no_types' => 'Your plan has no module with data to import.',
     'no_runs' => 'You have not imported any file yet.',
     'expected_columns' => 'Expected columns',
     'required' => 'required',

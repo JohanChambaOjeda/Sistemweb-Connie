@@ -2,6 +2,7 @@
 
 namespace App\Imports;
 
+use App\Enums\ModuleKey;
 use App\Models\FlowerVariety;
 use App\Models\Product;
 
@@ -10,6 +11,11 @@ class ProductRowImporter extends RowImporter
     public function type(): string
     {
         return 'products';
+    }
+
+    public function module(): ?string
+    {
+        return ModuleKey::Postharvest->value;
     }
 
     /**

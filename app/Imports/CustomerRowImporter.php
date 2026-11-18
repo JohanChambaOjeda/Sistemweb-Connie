@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Enums\Incoterm;
+use App\Enums\ModuleKey;
 use App\Models\Customer;
 use Illuminate\Validation\Rule;
 
@@ -11,6 +12,11 @@ class CustomerRowImporter extends RowImporter
     public function type(): string
     {
         return 'customers';
+    }
+
+    public function module(): ?string
+    {
+        return ModuleKey::Sales->value;
     }
 
     /**

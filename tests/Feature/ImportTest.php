@@ -218,3 +218,59 @@ it('solo deja importar a quien tiene el permiso', function () {
 it('aisla las corridas de importación entre empresas', function () {
     assertCompanyScoped(ImportRun::class);
 });
+
+it('solo ofrece los importadores de los módulos contratados', function () {
+    actingAsRole('admin', companyWithModules(['sales']));
+
+    $this->get(route('imports.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('imports/index')
+            ->has('types', 2)
+            ->where('types.0.type', 'customers')
+            ->where('types.1.type', 'prices'));
+
+    actingAsRole('admin', companyWithModules(['postharvest']));
+
+    $this->get(route('imports.index'))
+        ->assertInertia(fn ($page) => $page
+            ->has('types', 2)
+            ->where('types.0.type', 'varieties')
+            ->where('types.1.type', 'products'));
+});
+
+it('no deja subir un archivo de un módulo que no se tiene', function () {
+    actingAsRole('admin', companyWithModules(['sales']));
+
+    $this->post(route('imports.store'), [
+        'type' => 'varieties',
+        'file' => UploadedFile::fake()->createWithContent('variedades.csv', "Variedad\nExplorer\n"),
+        'header_row' => 1,
+    ])->assertSessionHasErrors('type');
+
+    expect(ImportRun::query()->count())->toBe(0);
+});
+
+it('bloquea una corrida cuyo módulo se desactivó después', function () {
+    $company = companyWithModules();
+    actingAsRole('admin', $company);
+
+    $run = uploadCsv('varieties', <<<'CSV'
+    Variedad
+    Explorer
+    CSV);
+
+    $this->get(route('imports.show', $run))->assertOk();
+
+    $postharvest = App\Models\Module::query()->where('key', 'postharvest')->firstOrFail();
+    $company->modules()->updateExistingPivot($postharvest->getKey(), ['is_active' => false]);
+    $company->forgetActiveModuleKeys();
+
+    $this->get(route('imports.show', $run))->assertForbidden();
+    $this->post(route('imports.commit', $run))->assertForbidden();
+    $this->delete(route('imports.destroy', $run))->assertForbidden();
+
+    $this->get(route('imports.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->has('runs', 0));
+});

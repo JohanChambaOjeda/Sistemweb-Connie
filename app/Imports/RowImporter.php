@@ -17,6 +17,12 @@ abstract class RowImporter
     abstract public function type(): string;
 
     /**
+     * Módulo del plan al que pertenece lo que importa. Null si no depende de
+     * ningún módulo.
+     */
+    abstract public function module(): ?string;
+
+    /**
      * @return list<ImportField>
      */
     abstract public function fields(): array;

@@ -36,6 +36,7 @@ return [
     'commit' => 'Importar solo las filas válidas',
     'download_report' => 'Descargar reporte de rechazos',
     'recent_runs' => 'Importaciones recientes',
+    'no_types' => 'Tu plan no incluye ningún módulo con datos para importar.',
     'no_runs' => 'Todavía no has importado archivos.',
     'expected_columns' => 'Columnas que espera',
     'required' => 'obligatorio',

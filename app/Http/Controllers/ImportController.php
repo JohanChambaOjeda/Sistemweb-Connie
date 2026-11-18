@@ -8,6 +8,7 @@ use App\Actions\Imports\StartImportRun;
 use App\Actions\Imports\UpdateImportMapping;
 use App\Imports\ImporterRegistry;
 use App\Imports\ImportRunReader;
+use App\Models\Company;
 use App\Models\ImportRun;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,9 +25,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class ImportController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         Gate::authorize('imports.run');
+
+        $company = $this->company($request);
+        $types = ImporterRegistry::availableTypes($company);
 
         return Inertia::render('imports/index', [
             'types' => array_map(fn ($importer) => [
@@ -38,9 +42,10 @@ class ImportController extends Controller
                     'required' => $field->required,
                     'example' => $field->example,
                 ], $importer->fields()),
-            ], ImporterRegistry::all()),
+            ], ImporterRegistry::availableFor($company)),
             'runs' => ImportRun::query()
                 ->with('user:id,name')
+                ->whereIn('type', $types)
                 ->latest('id')
                 ->limit(20)
                 ->get(),
@@ -52,7 +57,7 @@ class ImportController extends Controller
         Gate::authorize('imports.run');
 
         $validated = $request->validate([
-            'type' => ['required', Rule::in(ImporterRegistry::types())],
+            'type' => ['required', Rule::in(ImporterRegistry::availableTypes($this->company($request)))],
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv,txt', 'max:10240'],
             'header_row' => ['nullable', 'integer', 'min:1', 'max:20'],
         ]);
@@ -69,9 +74,10 @@ class ImportController extends Controller
         return to_route('imports.show', $run);
     }
 
-    public function show(ImportRun $import, ImportRunReader $reader, PreviewImportRun $preview): Response
+    public function show(Request $request, ImportRun $import, ImportRunReader $reader, PreviewImportRun $preview): Response
     {
         Gate::authorize('imports.run');
+        $this->assertModuleIsActive($request, $import);
 
         $importer = ImporterRegistry::make($import->type);
 
@@ -92,6 +98,7 @@ class ImportController extends Controller
     public function update(Request $request, ImportRun $import, UpdateImportMapping $action): RedirectResponse
     {
         Gate::authorize('imports.run');
+        $this->assertModuleIsActive($request, $import);
 
         $importer = ImporterRegistry::make($import->type);
         $keys = array_map(fn ($field) => $field->key, $importer->fields());
@@ -115,9 +122,10 @@ class ImportController extends Controller
         return to_route('imports.show', $import)->with('success', __('imports.messages.mapping_saved'));
     }
 
-    public function commit(ImportRun $import, CommitImportRun $action): RedirectResponse
+    public function commit(Request $request, ImportRun $import, CommitImportRun $action): RedirectResponse
     {
         Gate::authorize('imports.run');
+        $this->assertModuleIsActive($request, $import);
 
         $run = $action->handle($import);
 
@@ -127,9 +135,10 @@ class ImportController extends Controller
         ]));
     }
 
-    public function report(ImportRun $import): StreamedResponse
+    public function report(Request $request, ImportRun $import): StreamedResponse
     {
         Gate::authorize('imports.run');
+        $this->assertModuleIsActive($request, $import);
 
         abort_if($import->error_report_path === null, 404);
 
@@ -139,14 +148,36 @@ class ImportController extends Controller
         );
     }
 
-    public function destroy(ImportRun $import): RedirectResponse
+    public function destroy(Request $request, ImportRun $import): RedirectResponse
     {
         Gate::authorize('imports.run');
+        $this->assertModuleIsActive($request, $import);
 
         Storage::disk('local')->delete(array_filter([$import->stored_path, $import->error_report_path]));
 
         $import->delete();
 
         return to_route('imports.index')->with('success', __('imports.messages.deleted'));
+    }
+
+    private function company(Request $request): ?Company
+    {
+        return $request->user()?->resolveCurrentCompany();
+    }
+
+    /**
+     * Un importador solo se usa si la empresa tiene contratado el módulo de lo
+     * que importa: variedades y productos van con poscosecha, clientes y
+     * precios con ventas.
+     */
+    private function assertModuleIsActive(Request $request, ImportRun $import): void
+    {
+        if (ImporterRegistry::isAvailable($import->type, $this->company($request))) {
+            return;
+        }
+
+        $module = ImporterRegistry::make($import->type)->module() ?? '';
+
+        abort(403, __('modules.inactive', ['module' => __('modules.'.$module)]));
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Imports;
 
+use App\Enums\ModuleKey;
 use App\Enums\VarietyType;
 use App\Models\FlowerVariety;
 use Illuminate\Validation\Rule;
@@ -11,6 +12,11 @@ class VarietyRowImporter extends RowImporter
     public function type(): string
     {
         return 'varieties';
+    }
+
+    public function module(): ?string
+    {
+        return ModuleKey::Postharvest->value;
     }
 
     /**
