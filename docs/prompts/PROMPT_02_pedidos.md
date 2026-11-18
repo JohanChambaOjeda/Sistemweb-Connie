@@ -85,19 +85,79 @@ No inventes mecanismos nuevos para cosas que ya están resueltas:
   procesos persistentes, así que el envío de correos y cualquier trabajo pesado va a la
   cola y se procesa desde el programador de tareas.
 
-## Decisiones que quiero resolver en el plan, antes de codear
+## Decisiones ya tomadas (impleméntalas, no las vuelvas a discutir)
 
-1. **Temporadas**: hoy la temporada es un enum (`App\Enums\Season`) con rangos en
-   `config/floriculture.php`, y `product_prices.season` guarda esa clave. El alcance de
-   abajo pide una tabla `seasons` por empresa. Propónme cómo unificarlo sin romper
-   `ResolvePrice` ni los precios ya cargados, y qué pasa con los importadores de precios.
-2. **Capacidad de caja**: `box_types.default_bunches_per_box` ya existe. Dime cómo encaja
-   con la tabla `box_capacities` por tipo de caja y largo, y cuál manda.
-3. **Precios en los props de Inertia**: `postharvest_lead` no debe recibirlos. Propón dónde
-   se recorta (recurso, policy, una capa de presentación) para que no se escape en ninguna
-   pantalla ni en el PDF.
-4. **Correlativo del pedido**: cómo lo generas sin huecos ni choques bajo concurrencia en
-   MySQL, y si reinicia por año.
+Estas cuatro chocaban con lo que ya existe, así que las resolví antes de escribir el
+prompt. Si al implementarlas descubres que alguna no se sostiene, páralo y dímelo con el
+motivo concreto; no la cambies por tu cuenta.
+
+### 1. Temporadas: el enum es el tipo, la tabla es la edición
+
+Se separan dos cosas que el borrador mezclaba:
+
+- `App\Enums\Season` (`valentines`, `mothers_day`) sigue siendo **el tipo de temporada**, y
+  `product_prices.season` sigue guardando esa clave. Así un precio de San Valentín sirve
+  año tras año y no hay que migrar los precios ya cargados ni tocar los importadores.
+- Tabla nueva `seasons` = **la edición concreta de un año**, por empresa:
+  `company_id`, `key` (el enum), `name` ("San Valentín 2027"), `year`, `flight_from`,
+  `flight_to` (fechas reales de vuelo), `is_active`. Único por `company_id + key + year`.
+- Un pedido `preorder` referencia `season_id` (la edición), no la clave.
+- La ventana de vuelos la manda la tabla. Crea `App\Support\SeasonCalendar` (resuelto por
+  el contenedor, con la empresa activa) con `forDate(Carbon): ?Season`, que busca en
+  `seasons` la edición cuyo rango contiene la fecha y, si la empresa no tiene esa edición
+  cargada, cae a los rangos de `config/floriculture.php`.
+- `ResolvePrice` pasa a preguntarle a `SeasonCalendar` en vez de a `Season::forDate()`.
+  `Season::forDate()` se queda como el respaldo por configuración que usa el calendario, y
+  sus pruebas actuales siguen valiendo.
+- El seeder carga San Valentín 2027 y Día de la Madre 2027 para Cielos de América EC.
+
+### 2. Capacidad de caja: la tabla es el tope, el tipo de caja es el valor sugerido
+
+- `box_types.default_bunches_per_box` es **la sugerencia** al agregar contenido a una caja,
+  y además el tope de respaldo.
+- Tabla nueva `box_capacities`: `company_id`, `box_type_id`, `stem_length_cm`,
+  `max_bunches`. Único por `company_id + box_type_id + stem_length_cm`. Es el tope real,
+  porque a 90 cm entran menos bonches que a 40 cm.
+- Regla: el tope de una caja es el de la fila de `box_capacities` que corresponde al tipo de
+  caja y al largo; si no hay fila para ese largo, el tope es `default_bunches_per_box`; si
+  ese valor es 0, no hay tope configurado y la validación deja pasar (0 significa "sin
+  configurar", que es como quedaron sembrados varios tipos de caja).
+- Caja mixta con varios largos: el tope es **el menor** de los topes de los largos que
+  contiene. Es conservador y se explica fácil al usuario; la validación dice qué largo
+  mandó.
+- El mensaje de error nombra la caja, el tope y de dónde salió (tabla o valor por defecto).
+
+### 3. Precios ocultos: un permiso y un solo lugar donde se recortan
+
+- Permiso nuevo `orders.view_prices` en `PermissionCatalog::EXTRA`, concedido a `admin`,
+  `sales` y `billing`, negado a `postharvest_lead` y `warehouse_lead`.
+- Todo lo que viaja a Inertia pasa por una sola clase, `App\Support\OrderPayload` (o un
+  API Resource equivalente), que arma el arreglo del pedido y **elimina** los campos de
+  precio cuando el usuario no tiene el permiso: `price_per_stem`, `price_source`, el precio
+  sugerido, los totales en USD de la cabecera y los totales en USD del filtro de la lista.
+  No se recorta en el componente de React: lo que no se puede ver, no sale del servidor.
+- La misma clase la usan lista, semana de vuelos, formulario y ficha del pedido.
+- El PDF de confirmación exige `orders.view_prices`: sin el permiso, 403.
+- La prueba obligatoria verifica con `assertInertia` que para `postharvest_lead` esas claves
+  no existen en los props, no que estén vacías.
+
+### 4. Correlativo: tabla de secuencia con bloqueo, más índice único de respaldo
+
+- Tabla `order_sequences`: `company_id`, `year`, `last_number`, único por `company_id + year`.
+- `App\Actions\Orders\NextOrderNumber` corre dentro de la transacción del pedido: toma la
+  fila con `lockForUpdate()` (la crea si no existe), suma uno, la guarda y devuelve el
+  número. En SQLite el bloqueo es inocuo, así que las pruebas corren igual.
+- Qué fila usa: si la empresa reinicia por año, la del año en que se crea el pedido; si es
+  continuo, la fila con `year = 0`, que es la que lleva la cuenta de siempre. Así el mismo
+  mecanismo sirve para los dos criterios sin migrar nada.
+- `orders` lleva índice único `(company_id, number)` como última línea de defensa, y el
+  Action reintenta una vez si MySQL devuelve duplicado.
+- El número se asigna **al crear el pedido**, todavía en `draft`, para que ventas pueda
+  referirse a él desde el primer momento. No quedan huecos porque los pedidos no se borran:
+  se cancelan y conservan su número.
+- Si reinicia por año o es continuo todavía es pregunta para la finca, así que se decide con
+  un campo en `companies`: `order_number_resets_yearly`, por defecto `false` (continuo). La
+  tabla ya guarda el año, de modo que cambiar de criterio no exige migrar nada.
 
 ## Alcance
 
@@ -124,7 +184,8 @@ No inventes mecanismos nuevos para cosas que ya están resueltas:
   - Cambiarlo a mano exige el permiso `orders.edit_price`.
   - Si queda por debajo del precio base, pedir motivo y dejarlo en la bitácora.
 - Validaciones:
-  - La suma de bonches de una caja no puede exceder la capacidad del tipo de caja.
+  - La suma de bonches de una caja no puede exceder su capacidad, con la regla de la
+    decisión 2 (`box_capacities` por largo, con el valor del tipo de caja como respaldo).
   - La marcación debe pertenecer al cliente.
   - No se pueden poner fechas de vuelo pasadas, salvo con permiso de admin.
 - Máquina de estados:
@@ -179,8 +240,9 @@ No inventes mecanismos nuevos para cosas que ya están resueltas:
 
 ### 3. Pre-ventas de temporada
 
-- Temporadas por empresa: nombre, fechas de vuelo desde/hasta y su precio de temporada
-  (los precios ya existen; solo enlázalos), según lo que acordemos en la decisión 1.
+- Tabla `seasons` por empresa según la decisión 1: nombre, año, fechas de vuelo desde/hasta
+  y la clave del enum. El precio de temporada ya existe en `product_prices`; solo se enlaza
+  por esa clave.
 - Pedido tipo `preorder` asociado a una temporada.
 - Reporte "Comprometido por temporada": tallos y full boxes por variedad y largo, y por
   cliente, con exportación a Excel (maatwebsite/excel ya está instalado). Después lo
@@ -231,7 +293,8 @@ adelantes: deja solo las interfaces mencionadas (`AvailabilityQuery`, `CustomerE
 
 1. El reporte del paso 0.
 2. Plan con migraciones, modelos, Actions, comandos, rutas, pantallas y la lista de pruebas,
-   más tu respuesta a las cuatro decisiones de arriba. Espera mi aprobación.
+   mostrando dónde aterriza cada una de las cuatro decisiones de arriba. Espera mi
+   aprobación.
 3. Implementación en commits pequeños, en este orden: modelos y cálculos → estados y
    crédito → pantallas de pedido → semana de vuelos → PDF y correo → standing orders →
    pre-ventas y reporte.
@@ -246,8 +309,11 @@ adelantes: deja solo las interfaces mencionadas (`AvailabilityQuery`, `CustomerE
 Si tu plan depende de alguna, pregúntamela antes de codear; si puedes avanzar con un valor
 por defecto, déjalo documentado:
 
-- Capacidad real de bonches por tipo de caja y largo (QB/HB/FB × 40–90 cm).
-- Si el correlativo de pedidos reinicia cada año o es continuo.
+- Capacidad real de bonches por tipo de caja y largo (QB/HB/FB × 40–90 cm), que es lo que
+  llena `box_capacities`; mientras tanto el seeder carga valores aproximados y marcados como
+  provisionales.
+- Si el correlativo de pedidos reinicia cada año o es continuo (queda continuo por defecto
+  y se cambia con un campo de la empresa, pero confírmalo con la finca).
 - Qué día arranca la semana de vuelos para la finca (asumo lunes).
 - Si un pedido confirmado puede cambiar de fecha de vuelo sin volver a `draft`.
 - Si el límite de crédito se controla en USD del pedido o incluye flete en CIF.
